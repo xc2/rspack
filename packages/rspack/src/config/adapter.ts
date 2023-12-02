@@ -19,7 +19,8 @@ import type {
 	RawLibraryName,
 	RawLibraryOptions,
 	JsModule,
-	RawModuleRuleUse
+	RawModuleRuleUse,
+	JsChunk
 } from "@rspack/binding";
 import assert from "assert";
 import { Compiler } from "../Compiler";
@@ -68,6 +69,7 @@ import {
 	RspackOptionsNormalized
 } from "./normalization";
 import { Module } from "../Module";
+import { Chunk } from "../Chunk";
 
 export type { LoaderContext, LoaderDefinition, LoaderDefinitionFunction };
 
@@ -730,6 +732,9 @@ export function toRawSplitChunksOptions(
 	function getName(name: any) {
 		interface Context {
 			module: JsModule;
+			// FIXME: JsChunk[];
+			selectedChunks: Chunk[];
+			cacheGroupKey: string;
 		}
 
 		if (typeof name === "function") {
@@ -737,7 +742,12 @@ export function toRawSplitChunksOptions(
 				if (typeof ctx.module === "undefined") {
 					return name(undefined);
 				} else {
-					return name(Module.__from_binding(ctx.module));
+					return name(
+						Module.__from_binding(ctx.module),
+						// FIXME: Chunk.__from_binding
+						ctx.selectedChunks,
+						ctx.cacheGroupKey
+					);
 				}
 			};
 		} else {

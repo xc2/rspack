@@ -1,7 +1,9 @@
 use dashmap::DashMap;
 use num_bigint::BigUint as ChunksKey;
 use rayon::prelude::*;
-use rspack_core::{Chunk, ChunkByUkey, ChunkGraph, ChunkUkey, Compilation, Module, ModuleGraph};
+use rspack_core::{
+  Chunk, ChunkByUkey, ChunkGraph, ChunkUkey, Compilation, Module, ModuleGraph, NormalModule,
+};
 use rustc_hash::{FxHashMap, FxHashSet};
 
 use super::ModuleGroupMap;
@@ -246,7 +248,11 @@ impl SplitChunksPlugin {
               ChunkNameGetter::String(name) => Some(name.to_string()),
               ChunkNameGetter::Disabled => None,
               ChunkNameGetter::Fn(f) => {
-                let ctx = ChunkNameGetterFnCtx { module };
+                let ctx = ChunkNameGetterFnCtx {
+                  module,
+                  selected_chunks: selected_chunks.as_ref(),
+                  cache_group_key: cache_group.key.clone(),
+                };
                 f(ctx).await
               }
             };

@@ -3,7 +3,7 @@
 
 use std::sync::Arc;
 
-use rspack_core::{Module, ModuleGraph, SourceType};
+use rspack_core::{Chunk, Module, ModuleGraph, SourceType};
 use rustc_hash::FxHashMap as HashMap;
 
 use crate::{
@@ -124,9 +124,9 @@ pub fn create_cache_group_source(
   let min_size_reduction = normalize_sizes(options.min_size_reduction, default_size_types);
   let max_size = normalize_sizes(options.max_size, default_size_types);
 
-  let get_name = options
-    .name
-    .map(|name| Arc::new(move |_: &dyn Module| Some(name.clone())) as SplitChunksNameFn);
+  let get_name = options.name.map(|name| {
+    Arc::new(move |_: &dyn Module, _: &[&Chunk], _: String| Some(name.clone())) as SplitChunksNameFn
+  });
 
   CacheGroupSource {
     key,

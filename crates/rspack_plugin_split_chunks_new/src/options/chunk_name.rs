@@ -1,10 +1,12 @@
 use std::sync::Arc;
 
 use futures_util::future::BoxFuture;
-use rspack_core::Module;
+use rspack_core::{Chunk, Compilation, Module};
 
 pub struct ChunkNameGetterFnCtx<'a> {
   pub module: &'a dyn Module,
+  pub selected_chunks: &'a [&'a Chunk],
+  pub cache_group_key: String,
 }
 
 type ChunkNameGetterFn =

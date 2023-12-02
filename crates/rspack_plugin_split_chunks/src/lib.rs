@@ -10,7 +10,8 @@ pub use options::*;
 use rspack_core::{Chunk, ChunkGroupByUkey, Module};
 
 pub type TestFn = Arc<dyn Fn(&dyn Module) -> bool + Sync + Send>;
-pub(crate) type SplitChunksNameFn = Arc<dyn Fn(&dyn Module) -> Option<String> + Sync + Send>;
+pub(crate) type SplitChunksNameFn =
+  Arc<dyn Fn(&dyn Module, &[&Chunk], String) -> Option<String> + Sync + Send>;
 pub(crate) type ChunkFilterFn = Arc<dyn Fn(&Chunk, &ChunkGroupByUkey) -> bool + Send + Sync>;
 
 mod utils;

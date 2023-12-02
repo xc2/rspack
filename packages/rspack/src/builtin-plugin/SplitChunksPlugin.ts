@@ -5,7 +5,8 @@ import { BuiltinPluginName, create } from "./base";
 
 export const SplitChunksPlugin = create(
 	BuiltinPluginName.SplitChunksPlugin,
-	(options: OptimizationSplitChunksOptions) => {
+	(options: OptimizationSplitChunksOptions, ...args) => {
+		console.log(...args);
 		let raw = toRawSplitChunksOptions(options);
 		assert(typeof raw !== "undefined");
 		return raw;

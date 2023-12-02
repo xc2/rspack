@@ -6,6 +6,7 @@ mod codegen_result;
 mod compilation;
 mod hooks;
 mod module;
+mod normal_module;
 mod normal_module_factory;
 mod path_data;
 mod source;

@@ -69,7 +69,10 @@ impl SplitChunksPlugin {
       max_async_requests: options.min_chunks.unwrap_or(1),
       max_initial_requests: options.min_chunks.unwrap_or(1),
       filename: options.filename.clone(),
-      get_name: options.name.clone().unwrap_or_else(|| Arc::new(|_| None)),
+      get_name: options
+        .name
+        .clone()
+        .unwrap_or_else(|| Arc::new(|_, _, _| None)),
       fallback_cache_group: NormalizedFallbackCacheGroup {
         chunks_filter: normalize_chunks_filter(
           fallback_cache_group
@@ -189,7 +192,7 @@ impl SplitChunksPlugin {
     }
 
     // Determine name for split chunk
-    let name = (cache_group.get_name)(module);
+    let name = (cache_group.get_name)(module, selected_chunks, cache_group.key.clone());
 
     let existing_chunk = name.clone().and_then(|name| {
       named_chunk
