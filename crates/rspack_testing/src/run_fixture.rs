@@ -27,7 +27,9 @@ pub fn apply_from_fixture(fixture_path: &Path) -> (CompilerOptions, Vec<BoxPlugi
   test_config.apply(fixture_path.to_path_buf())
 }
 #[tokio::main]
-pub async fn test_fixture_html(fixture_path: &Path) -> Compiler<AsyncNativeFileSystem> {
+pub async fn test_fixture_html(
+  fixture_path: &Path,
+) -> Compiler<AsyncNativeFileSystem, AsyncNativeFileSystem> {
   test_fixture_share(
     fixture_path,
     &|s| s.ends_with(".html"),
@@ -37,7 +39,9 @@ pub async fn test_fixture_html(fixture_path: &Path) -> Compiler<AsyncNativeFileS
   .await
 }
 #[tokio::main]
-pub async fn test_fixture_js(fixture_path: &Path) -> Compiler<AsyncNativeFileSystem> {
+pub async fn test_fixture_js(
+  fixture_path: &Path,
+) -> Compiler<AsyncNativeFileSystem, AsyncNativeFileSystem> {
   test_fixture_share(
     fixture_path,
     &|s| s.ends_with(".js") && !s.contains("runtime.js"),
@@ -47,7 +51,9 @@ pub async fn test_fixture_js(fixture_path: &Path) -> Compiler<AsyncNativeFileSys
   .await
 }
 #[tokio::main]
-pub async fn test_fixture_css(fixture_path: &Path) -> Compiler<AsyncNativeFileSystem> {
+pub async fn test_fixture_css(
+  fixture_path: &Path,
+) -> Compiler<AsyncNativeFileSystem, AsyncNativeFileSystem> {
   test_fixture_share(
     fixture_path,
     &|s| s.ends_with(".css"),
@@ -57,7 +63,9 @@ pub async fn test_fixture_css(fixture_path: &Path) -> Compiler<AsyncNativeFileSy
   .await
 }
 #[tokio::main]
-pub async fn test_fixture_css_modules(fixture_path: &Path) -> Compiler<AsyncNativeFileSystem> {
+pub async fn test_fixture_css_modules(
+  fixture_path: &Path,
+) -> Compiler<AsyncNativeFileSystem, AsyncNativeFileSystem> {
   test_fixture_share(
     fixture_path,
     &|s| s.ends_with(".css") || (s.ends_with(".js") && !s.contains("runtime.js")),
@@ -71,7 +79,7 @@ pub async fn test_fixture_insta(
   fixture_path: &Path,
   stats_filter: &dyn Fn(&str) -> bool,
   mut_settings: Box<MutTestOptionsFn>,
-) -> Compiler<AsyncNativeFileSystem> {
+) -> Compiler<AsyncNativeFileSystem, AsyncNativeFileSystem> {
   test_fixture_share(fixture_path, stats_filter, mut_settings, None).await
 }
 
@@ -80,7 +88,7 @@ pub async fn test_fixture(
   fixture_path: &Path,
   mut_settings: Box<MutTestOptionsFn>,
   snapshot_name: Option<String>,
-) -> Compiler<AsyncNativeFileSystem> {
+) -> Compiler<AsyncNativeFileSystem, AsyncNativeFileSystem> {
   test_fixture_share(
     fixture_path,
     &|s| s.ends_with(".js") && !s.contains("runtime.js"),
@@ -96,7 +104,7 @@ pub async fn test_fixture_share(
   stats_filter: &dyn Fn(&str) -> bool,
   mut mut_settings: Box<MutTestOptionsFn>,
   snapshot_name: Option<String>,
-) -> Compiler<AsyncNativeFileSystem> {
+) -> Compiler<AsyncNativeFileSystem, AsyncNativeFileSystem> {
   enable_tracing_by_env(&std::env::var("TRACE").ok().unwrap_or_default(), "stdout");
 
   let snapshot_name = snapshot_name.unwrap_or("output".to_string());
@@ -114,7 +122,12 @@ pub async fn test_fixture_share(
   if options.output.path.exists() {
     std::fs::remove_dir_all(&options.output.path).expect("should remove output");
   }
-  let mut compiler = Compiler::new(options, plugins, AsyncNativeFileSystem);
+  let mut compiler = Compiler::new(
+    options,
+    plugins,
+    AsyncNativeFileSystem,
+    AsyncNativeFileSystem,
+  );
 
   compiler
     .build()
@@ -194,7 +207,7 @@ enum FsOptionEnum {
 #[tokio::main]
 pub async fn test_rebuild_fixture(
   fixture_path: &Path,
-  cb: Option<Box<dyn FnOnce(Compiler<AsyncNativeFileSystem>)>>,
+  cb: Option<Box<dyn FnOnce(Compiler<AsyncNativeFileSystem, AsyncNativeFileSystem>)>>,
 ) {
   enable_tracing_by_env(&std::env::var("TRACE").ok().unwrap_or_default(), "stdout");
 
@@ -203,7 +216,12 @@ pub async fn test_rebuild_fixture(
   if options.output.path.exists() {
     std::fs::remove_dir_all(&options.output.path).expect("should remove output");
   }
-  let mut compiler = Compiler::new(options, plugins, AsyncNativeFileSystem);
+  let mut compiler = Compiler::new(
+    options,
+    plugins,
+    AsyncNativeFileSystem,
+    AsyncNativeFileSystem,
+  );
   compiler
     .build()
     .await

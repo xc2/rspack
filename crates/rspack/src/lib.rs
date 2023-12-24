@@ -1,13 +1,17 @@
 #![recursion_limit = "256"]
 use rspack_core::Compiler;
 use rspack_core::{CompilerOptions, Plugin};
-use rspack_fs::AsyncWritableFileSystem;
+use rspack_fs::{AsyncReadableFileSystem, AsyncWritableFileSystem};
 
 #[deprecated(note = "please use `rspack_core::Compiler::new` instead")]
-pub fn rspack<T: AsyncWritableFileSystem + Send + Sync>(
+pub fn rspack<
+  T: AsyncWritableFileSystem + Send + Sync,
+  IFS: AsyncReadableFileSystem + Send + Sync,
+>(
   options: CompilerOptions,
   plugins: Vec<Box<dyn Plugin>>,
   output_filesystem: T,
-) -> Compiler<T> {
-  Compiler::new(options, plugins, output_filesystem)
+  input_filesystem: IFS,
+) -> Compiler<T, IFS> {
+  Compiler::new(options, plugins, output_filesystem, input_filesystem)
 }

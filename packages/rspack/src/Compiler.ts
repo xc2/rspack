@@ -33,7 +33,7 @@ import CacheFacade from "./lib/CacheFacade";
 import { runLoaders } from "./loader-runner";
 import { Logger } from "./logging/Logger";
 import { NormalModuleFactory } from "./NormalModuleFactory";
-import { WatchFileSystem } from "./util/fs";
+import { InputFileSystem, WatchFileSystem } from "./util/fs";
 import { getScheme } from "./util/scheme";
 import { checkVersion } from "./util/bindingVersionCheck";
 import { Watching } from "./Watching";
@@ -67,7 +67,7 @@ class Compiler {
 	watching?: Watching;
 	outputPath!: string;
 	name?: string;
-	inputFileSystem: any;
+	inputFileSystem: InputFileSystem;
 	outputFileSystem: typeof import("fs");
 	ruleSet: RuleSetCompiler;
 	// @ts-expect-error

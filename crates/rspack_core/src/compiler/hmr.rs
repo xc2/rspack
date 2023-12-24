@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use rspack_error::Result;
-use rspack_fs::AsyncWritableFileSystem;
+use rspack_fs::{AsyncReadableFileSystem, AsyncWritableFileSystem};
 use rspack_hash::RspackHashDigest;
 use rspack_identifier::IdentifierMap;
 use rustc_hash::FxHashSet as HashSet;
@@ -10,9 +10,10 @@ use rustc_hash::FxHashSet as HashSet;
 use super::MakeParam;
 use crate::{fast_set, ChunkKind, Compilation, Compiler, ModuleGraph, RuntimeSpec};
 
-impl<T> Compiler<T>
+impl<T, IFS> Compiler<T, IFS>
 where
   T: AsyncWritableFileSystem + Send + Sync,
+  IFS: AsyncReadableFileSystem + Send + Sync,
 {
   pub async fn rebuild(
     &mut self,

@@ -93,7 +93,12 @@ async fn run(relative_path: &str, #[cfg(feature = "tracing")] layer: Layer) {
 
   let start = Instant::now();
   // println!("{:?}", options);
-  let mut compiler = Compiler::new(options, plugins, AsyncNativeFileSystem);
+  let mut compiler = Compiler::new(
+    options,
+    plugins,
+    AsyncNativeFileSystem,
+    AsyncNativeFileSystem,
+  );
 
   compiler
     .build()
