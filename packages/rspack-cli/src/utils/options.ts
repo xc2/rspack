@@ -138,11 +138,7 @@ export function setBuiltinEnvArg(
 	envNameSuffix: string,
 	value: any
 ) {
-	const envNames = [
-		// TODO: breaking change, we could bring it in 0.5
-		// `WEBPACK_${envNameSuffix}`,
-		`RSPACK_${envNameSuffix}`
-	];
+	const envNames = [`WEBPACK_${envNameSuffix}`, `RSPACK_${envNameSuffix}`];
 	for (const envName of envNames) {
 		if (envName in env) {
 			continue;
