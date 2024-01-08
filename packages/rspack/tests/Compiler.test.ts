@@ -227,6 +227,9 @@ describe("Compiler", () => {
 				callback();
 			}
 		});
+		test("isRspack should be true", () => {
+			expect(compiler.isRspack).toBe(true);
+		});
 		describe("purgeInputFileSystem", () => {
 			it("invokes purge() if inputFileSystem.purge", done => {
 				const mockPurge = jest.fn();

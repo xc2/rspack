@@ -121,6 +121,8 @@ class Compiler {
 	#disabledHooks: string[];
 	parentCompilation?: Compilation;
 
+	public readonly isRspack: true = true;
+
 	constructor(context: string, options: RspackOptionsNormalized) {
 		this.outputFileSystem = fs;
 		this.options = options;
