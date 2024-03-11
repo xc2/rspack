@@ -580,7 +580,8 @@ export type AssetInlineGeneratorOptions = z.infer<
 
 const assetResourceGeneratorOptions = z.strictObject({
 	filename: filenameTemplate.optional(),
-	publicPath: publicPath.optional()
+	publicPath: publicPath.optional(),
+	emit: z.boolean().optional()
 });
 export type AssetResourceGeneratorOptions = z.infer<
 	typeof assetResourceGeneratorOptions
@@ -950,8 +951,10 @@ export type StatsValue = z.infer<typeof statsValue>;
 //#region Plugins
 export interface RspackPluginInstance {
 	apply: (compiler: Compiler) => void;
+
 	[k: string]: any;
 }
+
 export type RspackPluginFunction = (this: Compiler, compiler: Compiler) => void;
 
 const plugin = z.union([
@@ -1138,6 +1141,7 @@ export type WatchOptions = z.infer<typeof watchOptions>;
 
 //#region DevServer
 export interface DevServer extends webpackDevServer.Configuration {}
+
 const devServer = z.custom<DevServer>();
 //#endregion
 

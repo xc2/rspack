@@ -68,13 +68,15 @@ impl CanonicalizedDataUrlOption {
 pub struct AssetParserAndGenerator {
   data_url: DataUrlOptions,
   parsed_asset_config: Option<CanonicalizedDataUrlOption>,
+  no_emit: bool,
 }
 
 impl AssetParserAndGenerator {
-  pub fn with_auto(option: Option<AssetParserDataUrl>) -> Self {
+  pub fn with_auto(option: Option<AssetParserDataUrl>, no_emit: bool) -> Self {
     Self {
       data_url: DataUrlOptions::Auto(option),
       parsed_asset_config: None,
+      no_emit,
     }
   }
 
@@ -82,13 +84,15 @@ impl AssetParserAndGenerator {
     Self {
       data_url: DataUrlOptions::Inline(true),
       parsed_asset_config: None,
+      no_emit: true,
     }
   }
 
-  pub fn with_resource() -> Self {
+  pub fn with_resource(no_emit: bool) -> Self {
     Self {
       data_url: DataUrlOptions::Inline(false),
       parsed_asset_config: None,
+      no_emit,
     }
   }
 
@@ -96,6 +100,7 @@ impl AssetParserAndGenerator {
     Self {
       data_url: DataUrlOptions::Source,
       parsed_asset_config: None,
+      no_emit: true,
     }
   }
 
@@ -255,6 +260,7 @@ impl ParserAndGenerator for AssetParserAndGenerator {
       module_identifier,
       ..
     } = parse_context;
+
     build_info.strict = true;
     build_meta.exports_type = BuildMetaExportsType::Default;
     build_meta.default_object = BuildMetaDefaultObject::False;
@@ -312,6 +318,21 @@ impl ParserAndGenerator for AssetParserAndGenerator {
     module: &dyn rspack_core::Module,
     generate_context: &mut GenerateContext,
   ) -> Result<BoxSource> {
+    let no_emit = generate_context
+      .module_generator_options
+      .and_then(|x| x.get_asset(&ModuleType::AssetResource))
+      .and_then(|x| x.emit)
+      .is_some_and(|x| {
+        println!("foo: {}", x);
+        !x
+      });
+
+    println!(
+      "no_emit: {}, self.no_emit: {}",
+      no_emit,
+      self.no_emit.clone()
+    );
+
     let compilation = generate_context.compilation;
     let module_type = module.module_type();
     let parsed_asset_config = self
@@ -470,11 +491,35 @@ impl Plugin for AssetPlugin {
       .and_then(|x| x.get_asset(&ModuleType::Asset))
       .and_then(|x| x.data_url_condition.clone());
 
+    let asset_no_emit = options
+      .module
+      .generator
+      .as_ref()
+      .and_then(|x| x.get(&ModuleType::Asset))
+      .and_then(|x| x.get_asset(&ModuleType::Asset))
+      .and_then(|x| x.emit)
+      .is_some_and(|x| !x);
+
+    let asset_resource_no_emit = options
+      .module
+      .generator
+      .as_ref()
+      .and_then(|x| x.get(&ModuleType::AssetResource))
+      .and_then(|x| x.get_asset(&ModuleType::AssetResource))
+      .and_then(|x| x.emit)
+      .is_some_and(|x| !x);
+
+    println!(
+      "asset_no_emit:{}, assets_resource_no_emit:{}",
+      asset_no_emit, asset_resource_no_emit
+    );
+
     ctx.context.register_parser_and_generator_builder(
       rspack_core::ModuleType::Asset,
       Box::new(move || {
         Box::new(AssetParserAndGenerator::with_auto(
           data_url_condition.clone(),
+          asset_no_emit,
         ))
       }),
     );
@@ -484,7 +529,11 @@ impl Plugin for AssetPlugin {
     );
     ctx.context.register_parser_and_generator_builder(
       rspack_core::ModuleType::AssetResource,
-      Box::new(move || Box::new(AssetParserAndGenerator::with_resource())),
+      Box::new(move || {
+        Box::new(AssetParserAndGenerator::with_resource(
+          asset_resource_no_emit,
+        ))
+      }),
     );
     ctx.context.register_parser_and_generator_builder(
       rspack_core::ModuleType::AssetSource,

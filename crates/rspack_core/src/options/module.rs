@@ -237,6 +237,7 @@ pub struct AssetInlineGeneratorOptions {
 pub struct AssetResourceGeneratorOptions {
   pub filename: Option<Filename>,
   pub public_path: Option<PublicPath>,
+  pub emit: Option<bool>,
 }
 
 #[derive(Debug, Clone)]
@@ -244,6 +245,7 @@ pub struct AssetGeneratorOptions {
   pub filename: Option<Filename>,
   pub public_path: Option<PublicPath>,
   pub data_url: Option<AssetGeneratorDataUrl>,
+  pub emit: Option<bool>,
 }
 
 #[derive(Debug, Clone)]

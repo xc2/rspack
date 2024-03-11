@@ -617,6 +617,7 @@ export interface RawAssetGeneratorOptions {
   filename?: string
   publicPath?: string
   dataUrl?: RawAssetGeneratorDataUrl
+  emit?: boolean
 }
 
 export interface RawAssetInlineGeneratorOptions {
@@ -639,6 +640,7 @@ export interface RawAssetParserOptions {
 export interface RawAssetResourceGeneratorOptions {
   filename?: string
   publicPath?: string
+  emit?: boolean
 }
 
 export interface RawBannerContentFnCtx {

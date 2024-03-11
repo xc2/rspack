@@ -443,6 +443,7 @@ pub struct RawAssetGeneratorOptions {
   pub filename: Option<String>,
   pub public_path: Option<String>,
   pub data_url: Option<RawAssetGeneratorDataUrl>,
+  pub emit: Option<bool>,
 }
 
 impl From<RawAssetGeneratorOptions> for AssetGeneratorOptions {
@@ -451,6 +452,7 @@ impl From<RawAssetGeneratorOptions> for AssetGeneratorOptions {
       filename: value.filename.map(|i| i.into()),
       public_path: value.public_path.map(|i| i.into()),
       data_url: value.data_url.map(|i| i.into()),
+      emit: value.emit,
     }
   }
 }
@@ -476,6 +478,7 @@ impl From<RawAssetInlineGeneratorOptions> for AssetInlineGeneratorOptions {
 pub struct RawAssetResourceGeneratorOptions {
   pub filename: Option<String>,
   pub public_path: Option<String>,
+  pub emit: Option<bool>,
 }
 
 impl From<RawAssetResourceGeneratorOptions> for AssetResourceGeneratorOptions {
@@ -483,6 +486,7 @@ impl From<RawAssetResourceGeneratorOptions> for AssetResourceGeneratorOptions {
     Self {
       filename: value.filename.map(|i| i.into()),
       public_path: value.public_path.map(|i| i.into()),
+      emit: value.emit,
     }
   }
 }
