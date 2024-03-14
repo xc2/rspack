@@ -60,11 +60,13 @@ import { Entrypoint } from "./Entrypoint";
 
 export type AssetInfo = Partial<JsAssetInfo> & Record<string, any>;
 export type Assets = Record<string, Source>;
+
 export interface Asset {
 	name: string;
 	source: Source;
 	info: JsAssetInfo;
 }
+
 export interface LogEntry {
 	type: string;
 	args: any[];
@@ -116,6 +118,8 @@ export class Compilation {
 			[Iterable<Chunk>, Iterable<JsModule>],
 			void
 		>;
+		optimizeChunks: tapable.SyncBailHook<[Iterable<Chunk>], void>;
+		afterOptimizeChunks: tapable.SyncHook<[Iterable<Chunk>], void>;
 		finishModules: tapable.AsyncSeriesHook<[Iterable<JsModule>], void>;
 		chunkAsset: tapable.SyncHook<[JsChunk, string], void>;
 		processWarnings: tapable.SyncWaterfallHook<[Error[]]>;
@@ -225,6 +229,8 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 				"chunks",
 				"modules"
 			]),
+			optimizeChunks: new tapable.SyncBailHook(["chunks"]),
+			afterOptimizeChunks: new tapable.SyncHook(["chunks"]),
 			finishModules: new tapable.AsyncSeriesHook(["modules"]),
 			chunkAsset: new tapable.SyncHook(["chunk", "filename"]),
 			processWarnings: new tapable.SyncWaterfallHook(["warnings"]),
@@ -488,6 +494,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 	): boolean {
 		return this.#inner.setNoneAstModuleSource(moduleIdentifier, source);
 	}
+
 	/**
 	 * Emit an not existing asset. Trying to emit an asset that already exists will throw an error.
 	 *
@@ -914,6 +921,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 		},
 		10
 	);
+
 	rebuildModule(m: JsModule, f: (err: any, m: JsModule) => void) {
 		this._rebuildModuleCaller.push([m.moduleIdentifier, f]);
 	}
@@ -982,6 +990,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 	}
 
 	seal() {}
+
 	unseal() {}
 
 	static PROCESS_ASSETS_STAGE_ADDITIONAL = -2000;
