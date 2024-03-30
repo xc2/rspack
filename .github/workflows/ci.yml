@@ -89,7 +89,6 @@ jobs:
   test-mac:
     name: Test Mac
     needs: [get-runner-labels]
-    if: github.ref_name == 'main' || contains(github.event.pull_request.title, '!macos')
     uses: ./.github/workflows/reusable-build.yml
     with:
       target: x86_64-apple-darwin
