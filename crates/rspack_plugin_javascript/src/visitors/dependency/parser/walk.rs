@@ -312,10 +312,13 @@ impl<'parser> JavascriptParser<'parser> {
     if let Some(result) = self.plugin_drive.clone().statement_if(self, stmt) {
       if result {
         self.walk_nested_statement(&stmt.cons);
-        // TODO: adapt `InnerGraphPlugin` to `ParserPlugin`
-        self.path_ignored_spans.push(stmt.alt.span());
       } else if let Some(alt) = &stmt.alt {
         self.walk_nested_statement(alt);
+      }
+      if result {
+        // TODO: adapt `InnerGraphPlugin` to `ParserPlugin`
+        self.path_ignored_spans.push(stmt.alt.span());
+      } else {
         // TODO: adapt `InnerGraphPlugin` to `ParserPlugin`
         self.path_ignored_spans.push(stmt.cons.span());
       }
