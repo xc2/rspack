@@ -6,9 +6,10 @@ use rspack_regex::RspackRegex;
 use tracing::instrument;
 
 use crate::{
-  resolve, ContextModule, ContextModuleOptions, DependencyCategory, ModuleExt, ModuleFactory,
-  ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier, RawModule, ResolveArgs,
-  ResolveOptionsWithDependencyType, ResolveResult, Resolver, ResolverFactory, SharedPluginDriver,
+  resolve, AlternativeRequest, ContextModule, ContextModuleOptions, DependencyCategory, ModuleExt,
+  ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier, RawModule,
+  ResolveArgs, ResolveOptionsWithDependencyType, ResolveResult, Resolver, ResolverFactory,
+  SharedPluginDriver,
 };
 
 #[derive(Clone)]
@@ -66,11 +67,13 @@ pub struct AfterResolveData {
 
 define_hook!(ContextModuleFactoryBeforeResolve: AsyncSeriesWaterfall(data: BeforeResolveResult) -> BeforeResolveResult);
 define_hook!(ContextModuleFactoryAfterResolve: AsyncSeriesWaterfall(data: AfterResolveResult) -> AfterResolveResult);
+define_hook!(ContextModuleFactoryAlternativeRequests: AsyncSeriesWaterfall(modules: Vec<AlternativeRequest>, options: &ContextModuleOptions, resolver_factory: &ResolverFactory) -> Vec<AlternativeRequest>);
 
 #[derive(Debug, Default)]
 pub struct ContextModuleFactoryHooks {
   pub before_resolve: ContextModuleFactoryBeforeResolveHook,
   pub after_resolve: ContextModuleFactoryAfterResolveHook,
+  pub alternative_requests: ContextModuleFactoryAlternativeRequestsHook,
 }
 
 #[derive(Debug)]
@@ -245,6 +248,7 @@ impl ContextModuleFactory {
         let module = Box::new(ContextModule::new(
           options.clone(),
           plugin_driver.resolver_factory.clone(),
+          plugin_driver.clone(),
         ));
         (module, Some(options))
       }
@@ -302,6 +306,7 @@ impl ContextModuleFactory {
         let module = ContextModule::new(
           context_module_options.clone(),
           self.resolver_factory.clone(),
+          self.plugin_driver.clone(),
         );
         Ok(Some(ModuleFactoryResult::new_with_module(Box::new(module))))
       }

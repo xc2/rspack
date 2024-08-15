@@ -26,10 +26,11 @@ use crate::{
   AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext, BuildInfo, BuildMeta,
   BuildMetaDefaultObject, BuildMetaExportsType, BuildResult, ChunkGraph, ChunkGroupOptions,
   CodeGenerationResult, Compilation, ConcatenationScope, ContextElementDependency,
-  DependenciesBlock, Dependency, DependencyCategory, DependencyId, DependencyType,
-  DynamicImportMode, ExportsType, FactoryMeta, FakeNamespaceObjectMode, GroupOptions,
-  ImportAttributes, LibIdentOptions, Module, ModuleLayer, ModuleType, Resolve, ResolveInnerOptions,
-  ResolveOptionsWithDependencyType, ResolverFactory, RuntimeGlobals, RuntimeSpec, SourceType,
+  ContextModuleFactoryAlternativeRequestsHook, ContextModuleFactoryHooks, DependenciesBlock,
+  Dependency, DependencyCategory, DependencyId, DependencyType, DynamicImportMode, ExportsType,
+  FactoryMeta, FakeNamespaceObjectMode, GroupOptions, ImportAttributes, LibIdentOptions, Module,
+  ModuleLayer, ModuleType, Resolve, ResolveInnerOptions, ResolveOptionsWithDependencyType,
+  ResolverFactory, RuntimeGlobals, RuntimeSpec, SharedPluginDriver, SourceType,
 };
 
 #[derive(Debug, Clone)]
@@ -169,10 +170,15 @@ pub struct ContextModule {
   factory_meta: Option<FactoryMeta>,
   build_info: Option<BuildInfo>,
   build_meta: Option<BuildMeta>,
+  plugin_driver: SharedPluginDriver,
 }
 
 impl ContextModule {
-  pub fn new(options: ContextModuleOptions, resolve_factory: Arc<ResolverFactory>) -> Self {
+  pub fn new(
+    options: ContextModuleOptions,
+    resolve_factory: Arc<ResolverFactory>,
+    plugin_driver: SharedPluginDriver,
+  ) -> Self {
     Self {
       dependencies: Vec::new(),
       blocks: Vec::new(),
@@ -183,6 +189,7 @@ impl ContextModule {
       build_info: None,
       build_meta: None,
       source_map_kind: SourceMapKind::empty(),
+      plugin_driver,
     }
   }
 
@@ -874,7 +881,7 @@ impl Module for ContextModule {
     _build_context: BuildContext<'_>,
     _: Option<&Compilation>,
   ) -> Result<BuildResult> {
-    let (dependencies, blocks) = self.resolve_dependencies()?;
+    let (dependencies, blocks) = self.resolve_dependencies().await?;
 
     let mut context_dependencies: HashSet<PathBuf> = Default::default();
     context_dependencies.insert(PathBuf::from(&self.options.resource));
@@ -988,12 +995,13 @@ static WEBPACK_CHUNK_NAME_REQUEST_PLACEHOLDER: LazyLock<Regex> =
   LazyLock::new(|| Regex::new(r"\[request\]").expect("regexp init failed"));
 
 impl ContextModule {
-  fn visit_dirs(
+  async fn visit_dirs(
     ctx: &str,
     dir: &Path,
     dependencies: &mut Vec<ContextElementDependency>,
     options: &ContextModuleOptions,
-    resolve_options: &ResolveInnerOptions,
+    resolver_factory: &ResolverFactory,
+    plugin_driver: &SharedPluginDriver,
   ) -> Result<()> {
     if !dir.is_dir() {
       return Ok(());
@@ -1013,7 +1021,15 @@ impl ContextModule {
 
       if path.is_dir() {
         if options.context_options.recursive {
-          Self::visit_dirs(ctx, &path, dependencies, options, resolve_options)?;
+          Box::pin(Self::visit_dirs(
+            ctx,
+            &path,
+            dependencies,
+            options,
+            resolver_factory,
+            plugin_driver,
+          ))
+          .await?;
         }
       } else if path
         .file_name()
@@ -1043,10 +1059,19 @@ impl ContextModule {
           }
         };
 
-        let requests = alternative_requests(
-          resolve_options,
-          vec![AlternativeRequest::new(ctx.to_string(), relative_path)],
-        );
+        // let requests = alternative_requests(
+        //   resolve_options,
+        //   vec![AlternativeRequest::new(ctx.to_string(), relative_path)],
+        // );
+        let requests = plugin_driver
+          .context_module_factory_hooks
+          .alternative_requests
+          .call(
+            vec![AlternativeRequest::new(ctx.to_string(), relative_path)],
+            &options,
+            &resolver_factory,
+          )
+          .await?;
 
         let Some(reg_exp) = &options.context_options.reg_exp else {
           return Ok(());
@@ -1088,14 +1113,16 @@ impl ContextModule {
   // Vec<Box<T: Sized>> makes sense if T is a large type (see #3530, 1st comment).
   // #3530: https://github.com/rust-lang/rust-clippy/issues/3530
   #[allow(clippy::vec_box)]
-  fn resolve_dependencies(&self) -> Result<(Vec<BoxDependency>, Vec<Box<AsyncDependenciesBlock>>)> {
+  async fn resolve_dependencies(
+    &self,
+  ) -> Result<(Vec<BoxDependency>, Vec<Box<AsyncDependenciesBlock>>)> {
     tracing::trace!("resolving context module path {}", self.options.resource);
 
-    let resolver = &self.resolve_factory.get(ResolveOptionsWithDependencyType {
-      resolve_options: self.options.resolve_options.clone(),
-      resolve_to_context: false,
-      dependency_category: self.options.context_options.category,
-    });
+    //let resolver = &self.resolve_factory.get(ResolveOptionsWithDependencyType {
+    //  resolve_options: self.options.resolve_options.clone(),
+    //  resolve_to_context: false,
+    //  dependency_category: self.options.context_options.category,
+    //});
 
     let mut context_element_dependencies = vec![];
     Self::visit_dirs(
@@ -1103,8 +1130,10 @@ impl ContextModule {
       Path::new(&self.options.resource),
       &mut context_element_dependencies,
       &self.options,
-      &resolver.options(),
-    )?;
+      &self.resolve_factory,
+      &self.plugin_driver,
+    )
+    .await?;
     context_element_dependencies.sort_by_cached_key(|d| d.user_request.to_string());
 
     tracing::trace!(
@@ -1268,7 +1297,7 @@ pub fn normalize_context(str: &str) -> String {
   str.to_string() + "/"
 }
 
-fn alternative_requests(
+pub fn alternative_requests(
   resolve_options: &ResolveInnerOptions,
   mut items: Vec<AlternativeRequest>,
 ) -> Vec<AlternativeRequest> {

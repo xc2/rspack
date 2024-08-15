@@ -4,11 +4,13 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use rspack_core::rspack_sources::BoxSource;
 use rspack_core::{
-  get_js_chunk_filename_template, ChunkGraph, ChunkKind, ChunkUkey, Compilation,
-  CompilationAdditionalTreeRuntimeRequirements, CompilationChunkHash, CompilationContentHash,
-  CompilationParams, CompilationRenderManifest, CompilerCompilation, CompilerOptions,
-  DependencyType, IgnoreErrorModuleFactory, ModuleGraph, ModuleType, ParserAndGenerator, PathData,
-  Plugin, PluginContext, RenderManifestEntry, RuntimeGlobals, SelfModuleFactory, SourceType,
+  alternative_requests, get_js_chunk_filename_template, AlternativeRequest, ChunkGraph, ChunkKind,
+  ChunkUkey, Compilation, CompilationAdditionalTreeRuntimeRequirements, CompilationChunkHash,
+  CompilationContentHash, CompilationParams, CompilationRenderManifest, CompilerCompilation,
+  CompilerOptions, ContextModuleFactoryAlternativeRequests, ContextModuleOptions, DependencyType,
+  IgnoreErrorModuleFactory, ModuleGraph, ModuleType, ParserAndGenerator, PathData, Plugin,
+  PluginContext, RenderManifestEntry, ResolveOptionsWithDependencyType, ResolverFactory,
+  RuntimeGlobals, SelfModuleFactory, SourceType,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_hash::RspackHash;
@@ -274,6 +276,21 @@ async fn render_manifest(
   Ok(())
 }
 
+#[plugin_hook(ContextModuleFactoryAlternativeRequests for JsPlugin)]
+fn require_context_alternative_requests(
+  &self,
+  requests: Vec<AlternativeRequest>,
+  options: &ContextModuleOptions,
+  resolver_factory: &ResolverFactory,
+) -> Vec<AlternativeRequest> {
+  let resolver = resolver_factory.get(ResolveOptionsWithDependencyType {
+    resolve_options: options.resolve_options.clone(),
+    resolve_to_context: false,
+    dependency_category: options.context_options.category,
+  });
+  alternative_requests(&resolver.options(), requests);
+}
+
 #[async_trait]
 impl Plugin for JsPlugin {
   fn name(&self) -> &'static str {
@@ -309,6 +326,12 @@ impl Plugin for JsPlugin {
       .compilation_hooks
       .render_manifest
       .tap(render_manifest::new(self));
+
+    ctx
+      .context
+      .context_module_factory_hooks
+      .alternative_requests
+      .tap(require_context_alternative_requests::new(self));
 
     ctx
       .context
